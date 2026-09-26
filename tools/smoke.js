@@ -612,6 +612,12 @@ A.tests.forEach((t) => {
       check(html.indexOf('q-block') > -1, `测试页 ${t.id} 没有渲染出题目`);
       check(html.indexOf('查看结果') > -1, `测试页 ${t.id} 缺少「查看结果」按钮`);
       check(html.indexOf('逐题作答') > -1, `测试页 ${t.id} 缺少作答模式切换`);
+      /* 绝对不能在作答界面显示选项分值——那是计分用的内部映射，渲染出来就泄露答案。
+         CRT-7 的 v=[0,1,0,0] 会把正确答案直接圈出来；AQ-10 的 [0,0,1,1]、
+         RAADS-R 的 [3,2,1,0]、EAT-26 的 [3,2,1,0,0,0] 会同时泄露方向与正误。 */
+      check(html.indexOf('class="val"') < 0, `测试页 ${t.id} 在选项上渲染了分值，会泄露答案或计分方向`);
+      const optHtml = html.slice(html.indexOf('id="qhost"'), html.indexOf('id="qhost"') + 4000);
+      check(!/\d+\s*分<\/span>/.test(optHtml), `测试页 ${t.id} 的选项里出现了"几分"字样`);
     }
     /* 收录规则 ①：源站可访问且免费的条目，必须把官方网址直接贴出来 */
     if (t.access === 'both') {
@@ -626,7 +632,106 @@ check(builtinPages >= 80, `站内可做页面数异常：${builtinPages}`);
 check(linkPages >= 20, `外链页面数异常：${linkPages}`);
 check(refPages >= 15, `说明性条目数异常：${refPages}`);
 
-/* ============================ 8. 结果页 ============================ */
+/* ============================ 8. 答案泄露回归（选项分值） ============================
+   用户报告：CRT-7 等测试直接显示了选项分值。q.v 是计分用的内部映射，
+   渲染出来等于把答案（CRT-7 的 [0,1,0,0]）或计分方向（RAADS-R 的 [3,2,1,0]）告诉作答者。
+   ================================================================================== */
+['crt-7', 'aq-10', 'raads-r', 'eat-26', 'ftnd', 'audit', 'psqi'].forEach((id) => {
+  const t = APP.INDEX[id];
+  if (!t) { errors.push(`答案泄露回归：找不到 ${id}`); return; }
+  global.location.hash = '#/test/' + id;
+  const html = renderPage('答案泄露:' + id, () => APP.route());
+  check(html.indexOf('class="val"') < 0, `${id} 在作答界面渲染了选项分值`);
+  const host = findReal('#qhost');
+  if (!host) { errors.push(`答案泄露回归：${id} 找不到题目容器`); return; }
+  const opts = host.querySelectorAll('.opt');
+  check(opts.length > 0, `${id} 没有渲染出选项`);
+  /* 同一题内的选项必须完全对称：除了文字，不能有任何区分正确项的信息 */
+  const byQ = {};
+  opts.forEach((o) => {
+    const blk = o.closest('.q-block');
+    const qi = blk ? blk.getAttribute('data-i') : '?';
+    (byQ[qi] = byQ[qi] || []).push(o);
+  });
+  Object.keys(byQ).forEach((qi) => {
+    const group = byQ[qi];
+    const sig = (o) => o.childNodes.filter((c) => c.nodeType === 1)
+      .map((c) => c.tagName + ':' + (c.getAttribute('class') || '')).join('|');
+    const first = sig(group[0]);
+    group.slice(1).forEach((o, k) => {
+      check(sig(o) === first,
+        `${id} 第 ${Number(qi) + 1} 题的选项结构不对称（第 ${k + 2} 个与其他不同），可能泄露答案`);
+    });
+    /* 属性里也不能带分值（data-o 是选项序号，不算） */
+    group.forEach((o, k) => {
+      const leak = o.attributes.filter((a) => a.name !== 'data-o' && /\d/.test(a.value));
+      check(leak.length === 0,
+        `${id} 第 ${Number(qi) + 1} 题第 ${k + 1} 个选项的属性里带了数字：${leak.map((a) => a.name + '=' + a.value).join(', ')}`);
+    });
+  });
+});
+
+/* 知识型测试（有客观正确答案）应当只在结果页、且默认折叠时才揭示答案 */
+{
+  const t = APP.INDEX['crt-7'];
+  check(t && t.revealAnswers === true, 'CRT-7 应当开启 revealAnswers，让用户在交卷后能看到正确答案');
+  const right = A.questions(t).map((q) => q.v.indexOf(Math.max.apply(null, q.v)));
+  APP._t.setRun(t, right);
+  const allRight = APP._t.resultHtml(t, A.score(t, right));
+  check(allRight.indexOf('✓ 正确') > -1, 'CRT-7 全对时结果页没有逐题标出正确');
+  check(allRight.indexOf('正确答案：') < 0, 'CRT-7 全对时不应出现"正确答案"提示');
+  check(allRight.indexOf('<details') > -1, 'CRT-7 的答案回顾应当默认折叠');
+  const wrong = right.map((r) => (r + 1) % 4);
+  APP._t.setRun(t, wrong);
+  const allWrong = APP._t.resultHtml(t, A.score(t, wrong));
+  check(allWrong.indexOf('正确答案：') > -1, 'CRT-7 答错时结果页没有给出正确答案');
+  /* 症状类量表一律不做对错判定 */
+  const sym = APP.INDEX['phq-9'];
+  APP._t.setRun(sym, sym.q.map(() => 0));
+  const symHtml = APP._t.resultHtml(sym, A.score(sym, sym.q.map(() => 0)));
+  check(symHtml.indexOf('正确答案：') < 0 && symHtml.indexOf('✓ 正确') < 0,
+    '症状类量表（PHQ-9）不应出现对错判定');
+}
+
+/* ============================ 9. 分档参照完整性（不截断） ============================
+   用户报告：结果页的「分档参照」被截断。根因是渲染时对说明列调用了 stripShort()，
+   把每一档的判读文本砍到 60 字。这张表的意义就是把计分规则与判读完整公开，
+   截断等于把最有用的部分删掉。这里逐条断言每一档的文本都完整出现在结果页里。
+   ================================================================================== */
+const stripTags = (s) => String(s).replace(/<[^>]*>/g, '');
+let rangeRows = 0;
+A.tests.forEach((t) => {
+  if (!t.q || !t.q.length || !t.score) return;
+  const qs = A.questions(t);
+  /* 用三种作答各跑一遍，覆盖不同 levelIdx */
+  const variants = [
+    qs.map((x) => A.qOptions(t, x).length - 1),
+    qs.map(() => 0),
+    qs.map((x) => Math.floor((A.qOptions(t, x).length - 1) / 2))
+  ];
+  variants.forEach((ans, vi) => {
+    const res = A.score(t, ans);
+    if (!res.ranges || !res.ranges.length) return;
+    APP._t.setRun(t, ans);
+    const html = APP._t.resultHtml(t, res);
+    const plain = stripTags(html);
+    res.ranges.forEach((r, i) => {
+      const full = stripTags(r[2] || '');
+      if (!full) return;
+      rangeRows++;
+      /* 取文本尾部作为特征片段：截断时尾部必然缺失 */
+      const tail = full.length > 14 ? full.slice(-14) : full;
+      check(plain.indexOf(tail) > -1,
+        `${t.id} 分档参照第 ${i + 1} 档的说明被截断（缺少结尾片段「…${tail}」）`);
+      /* 也不能出现截断省略号 */
+      check(plain.indexOf(full.slice(0, 30) + '…') < 0,
+        `${t.id} 分档参照第 ${i + 1} 档的说明带截断省略号`);
+    });
+  });
+});
+check(rangeRows > 300, `分档参照校验覆盖面过小：只检查了 ${rangeRows} 行`);
+
+/* ============================ 10. 结果页 ============================ */
 let resultOk = 0;
 A.tests.forEach((t) => {
   if (!t.q || !t.q.length) return;

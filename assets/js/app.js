@@ -411,11 +411,16 @@
       '<div class="opts' + row + '" role="radiogroup" aria-label="第 ' + (i + 1) + ' 题的选项">';
     opts.forEach(function (label, oi) {
       var on = chosen === oi;
+      /* 注意：绝对不要在作答界面显示选项分值。
+         q.v 是计分用的内部映射，一旦渲染出来就泄露了答案——
+         例如 CRT-7 的 v 是 [0,1,0,0]，标出"1 分"等于直接把正确答案圈出来；
+         AQ-10 的 [0,0,1,1]、RAADS-R 的 [3,2,1,0] 同理，会同时泄露方向与正误。
+         即使是普通李克特量表，标出 0/1/2/3 也会诱导作答者往高分选。
+         计分规则在结果页的「分档参照」里公开，不需要在这里展示。 */
       h += '<button type="button" class="opt' + (on ? ' sel' : '') + '" data-o="' + oi + '"' +
         ' role="radio" aria-checked="' + (on ? 'true' : 'false') + '">' +
         '<span class="key" aria-hidden="true">' + (LETTERS[oi] || oi + 1) + '</span>' +
         '<span class="lab">' + esc(label) + '</span>' +
-        (q.v ? '<span class="val">' + q.v[oi] + ' 分</span>' : '') +
         '</button>';
     });
     h += '</div></div>';
@@ -631,9 +636,12 @@
       h += '</div></div>';
     }
 
-    /* 分档明细表 */
+    /* 分档明细表：说明列必须完整呈现，不做任何截断——
+       这张表的作用就是把计分规则和每一档的判读完整公开，截断等于把最有用的部分删掉。 */
     if (res.ranges && res.ranges.length) {
-      h += '<div class="para-card"><h3><span class="n">档</span>分档参照</h3><div class="table-scroll"><table class="ranges">' +
+      h += '<div class="para-card"><h3><span class="n">档</span>分档参照</h3>' +
+        '<p class="small muted" style="margin:-4px 0 10px">下表是本站该量表的完整分档规则，你的得分落在高亮的那一档。</p>' +
+        '<div class="table-scroll"><table class="ranges">' +
         '<thead><tr><th>分数区间</th><th>判定</th><th>说明</th></tr></thead><tbody>';
       var prev = 0, num = (t.score && t.score.type === 'mean');
       res.ranges.forEach(function (r, i) {
@@ -641,8 +649,10 @@
         if (num) label = (prev === 0 ? '≤ ' : (prev + 1) + ' – ') + Number(r[0]).toFixed(2);
         else label = prev === 0 ? '0 – ' + r[0] : (prev + 1) + ' – ' + r[0];
         prev = r[0];
-        h += '<tr class="' + (i === res.levelIdx ? 'hit' : '') + '"><td class="mono">' + esc(label) + '</td>' +
-          '<td>' + esc(r[1]) + '</td><td class="muted small">' + safe(stripShort(r[2])) + '</td></tr>';
+        h += '<tr class="' + (i === res.levelIdx ? 'hit' : '') + '">' +
+          '<td class="mono rng">' + esc(label) + '</td>' +
+          '<td class="lvl">' + esc(r[1]) + '</td>' +
+          '<td class="muted small desc">' + safe(r[2] || '') + '</td></tr>';
       });
       h += '</tbody></table></div></div>';
     }
@@ -671,12 +681,6 @@
     return h;
   }
 
-  function stripShort(s) {
-    if (!s) return '';
-    var x = String(s);
-    return x.length > 60 ? x.slice(0, 60) + '…' : x;
-  }
-
   function gauge(res) {
     if (!res.ranges || !res.ranges.length || res.raw == null || res.max == null) return '';
     var max = typeof res.max === 'number' ? res.max : res.ranges[res.ranges.length - 1][0];
@@ -698,12 +702,26 @@
 
   function answerReview(t) {
     var qs = A.questions(t);
-    var h = '<details class="para-card"><summary style="cursor:pointer;font-weight:600">📝 查看你的作答回顾（' + t._n + ' 题）</summary><div style="margin-top:12px">';
+    /* 只有"有客观正确答案"的测试才揭示答案（如认知反思测验），
+       症状类量表一律不判定对错。答案回顾默认折叠，交卷后才看得到。 */
+    var reveal = !!t.revealAnswers;
+    var h = '<details class="para-card"><summary style="cursor:pointer;font-weight:600">📝 查看你的作答回顾（' + t._n + ' 题' +
+      (reveal ? ' · 含正确答案' : '') + '）</summary><div style="margin-top:12px">';
     qs.forEach(function (q, i) {
       var opts = A.qOptions(t, q), a = RUN.answers[i];
+      var mark = '';
+      if (reveal && q.v && a != null) {
+        var best = 0;
+        q.v.forEach(function (v, k) { if (v > q.v[best]) best = k; });
+        mark = (a === best)
+          ? ' <span class="pill ok">✓ 正确</span>'
+          : ' <span class="pill bad">✗ 正确答案：「' + esc(opts[best]) + '」</span>';
+      } else if (reveal && q.v && a == null) {
+        mark = ' <span class="pill">未作答</span>';
+      }
       h += '<div class="small" style="padding:6px 0;border-bottom:1px dashed var(--line)">' +
         '<span class="muted mono">' + (i + 1) + '.</span> ' + safe(q.t) + '<br>' +
-        '<b style="color:var(--accent)">' + (a == null ? '未作答' : esc(opts[a])) + '</b></div>';
+        '<b style="color:var(--accent)">' + (a == null ? '未作答' : esc(opts[a])) + '</b>' + mark + '</div>';
     });
     h += '</div></details>';
     return h;

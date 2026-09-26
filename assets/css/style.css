@@ -292,8 +292,6 @@ select.chip{padding:5px 9px;font-family:inherit}
 .opt .lab{flex:1}
 .opt.sel{border-color:var(--accent);background:var(--accent-soft);font-weight:600}
 .opt.sel .key{background:var(--accent);border-color:var(--accent);color:#fff}
-.opt .val{font-size:11.5px;color:var(--text-3);font-variant-numeric:tabular-nums}
-.opts.row .opt .val{order:3}
 
 .nav-row{display:flex;align-items:center;gap:10px;margin-top:22px;padding-top:16px;border-top:1px solid var(--line);flex-wrap:wrap}
 .nav-row .spacer{flex:1}
@@ -333,11 +331,15 @@ select.chip{padding:5px 9px;font-family:inherit}
 .alert b{font-weight:700}
 .alert a{font-weight:600}
 
-table.ranges{width:100%;border-collapse:collapse;font-size:13.2px;margin-top:8px}
-table.ranges th,table.ranges td{padding:7px 9px;border-bottom:1px solid var(--line);text-align:left;vertical-align:top}
+table.ranges{width:100%;border-collapse:collapse;font-size:13.2px;margin-top:4px}
+table.ranges th,table.ranges td{padding:9px 10px;border-bottom:1px solid var(--line);text-align:left;vertical-align:top}
 table.ranges th{font-size:11.5px;letter-spacing:.04em;color:var(--text-3);text-transform:uppercase}
+/* 说明列承载完整判读文本，必须能自然换行、不设任何截断 */
+table.ranges td.desc{line-height:1.75;color:var(--text-2);word-break:break-word}
+table.ranges td.rng{white-space:nowrap}
 table.ranges tr.hit{background:var(--accent-soft)}
-table.ranges tr.hit td{font-weight:600}
+table.ranges tr.hit td{font-weight:600;border-bottom-color:color-mix(in srgb,var(--accent) 35%,var(--line))}
+table.ranges tr.hit td.lvl{font-weight:700;color:var(--accent)}
 
 /* ---------- 内容页 ---------- */
 .page-head{margin-bottom:20px}
@@ -460,6 +462,17 @@ table.data td a{word-break:break-all}
   .runner,.test-head,.result-head{padding:17px 15px;border-radius:var(--r-lg)}
   .dim{grid-template-columns:1fr;gap:5px}
   .dim .dval{text-align:left}
+  /* 分档参照：窄屏把表格改成"每档一块"，否则三列挤在一起，长说明几乎没法读 */
+  table.ranges thead{display:none}
+  table.ranges,table.ranges tbody,table.ranges tr,table.ranges td{display:block;width:auto}
+  table.ranges tr{padding:12px 2px;border-bottom:1px solid var(--line)}
+  table.ranges tr:last-child{border-bottom:none}
+  table.ranges tr.hit{padding:12px 12px;border-radius:10px;border-bottom-color:transparent}
+  table.ranges td{border:none;padding:0 0 5px}
+  table.ranges td:last-child{padding-bottom:0}
+  table.ranges td.rng{font-size:12.5px;font-weight:700;color:var(--text);white-space:normal}
+  table.ranges td.lvl{font-weight:700;color:var(--text)}
+  table.ranges tr.hit td.lvl{color:var(--accent)}
   .test-grid,.cat-grid{grid-template-columns:1fr}
 }
 @media (prefers-reduced-motion:reduce){
