@@ -1,0 +1,17 @@
+{
+  "name": "all-the-tests",
+  "version": "1.0.0",
+  "private": true,
+  "description": "All The Tests —— 全网心理测试收录库：正式量表与娱乐测试的去重索引，可外链的贴网址、不可访问或不免费的按公开题本自建。",
+  "keywords": ["psychology", "psychometrics", "scales", "assessment", "static-site"],
+  "license": "SEE README",
+  "scripts": {
+    "verify": "node tools/verify.js",
+    "smoke": "node tools/smoke.js",
+    "check": "node tools/verify.js && node tools/smoke.js",
+    "start": "npx --yes serve ."
+  },
+  "engines": {
+    "node": ">=18"
+  }
+}

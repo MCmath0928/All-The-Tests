@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html lang="zh-CN" data-theme="light">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>All The Tests · 全网心理测试收录库</title>
+<meta name="description" content="All The Tests —— 汇集全网可找到的正式与娱乐性心理测试，去重、分类、标注中国可访问性与免费情况；不能访问或不免费的量表，我们按原题自建可交互测试页。">
+<meta name="theme-color" content="#5b6cff">
+<meta name="author" content="FZYZ LSY">
+<link rel="icon" href="assets/img/author-logo-96.png">
+<link rel="apple-touch-icon" href="assets/img/author-logo-256.png">
+<link rel="stylesheet" href="assets/css/style.css">
+</head>
+<body>
+
+<a class="skip-link" href="#main">跳到主要内容</a>
+
+<header class="topbar">
+  <div class="topbar-inner">
+    <a class="brand" href="#/" aria-label="All The Tests 首页，由 FZYZ LSY 创作">
+      <span class="brand-mark"><img src="assets/img/author-logo-96.png" alt="FZYZ LSY" width="38" height="38"></span>
+      <span class="brand-text">
+        <strong>All The Tests</strong>
+        <em>全网心理测试收录库 · by FZYZ LSY</em>
+      </span>
+    </a>
+
+    <div class="search-wrap" role="search">
+      <svg class="search-ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M10 4a6 6 0 1 0 3.7 10.7l4.3 4.3 1.4-1.4-4.3-4.3A6 6 0 0 0 10 4Zm0 2a4 4 0 1 1 0 8 4 4 0 0 1 0-8Z"/></svg>
+      <input id="search" type="search" autocomplete="off" placeholder="搜索测试名、缩写或关键词，例如：PHQ-9 / 依恋 / 拖延">
+      <kbd class="kbd">/</kbd>
+      <div id="search-panel" class="search-panel" hidden></div>
+    </div>
+
+    <nav class="topnav">
+      <a href="#/" data-nav="home">首页</a>
+      <a href="#/cats" data-nav="cats">分类</a>
+      <a href="#/dedup" data-nav="dedup">去重说明</a>
+      <a href="#/mine" data-nav="mine">我的记录</a>
+      <a href="#/about" data-nav="about">关于</a>
+      <button id="theme-btn" class="icon-btn" type="button" title="切换深浅色" aria-label="切换深浅色">◐</button>
+    </nav>
+  </div>
+</header>
+
+<main id="main" tabindex="-1"></main>
+
+<footer class="footer">
+  <div class="footer-inner">
+    <div class="author-line">
+      <img src="assets/img/author-logo-96.png" alt="" width="34" height="34" loading="lazy">
+      <div>
+        <b>FZYZ LSY</b><span>创作者与维护者</span>
+        <em>All The Tests 是一个个人兴趣项目：个人创作，仅作娱乐，不保证测试结果严谨准确，也不能代替任何现实心理诊断与治疗。</em>
+      </div>
+    </div>
+    <p class="disc">
+      <strong>免责声明：</strong>本站是心理测量量表的<em>整理与索引</em>项目，所有自建测试页仅供自我了解、科普与娱乐，
+      <strong>不构成医学诊断、心理治疗或任何专业建议</strong>。量表结果会受当下情绪与作答环境影响；若你正经历持续的痛苦、
+      失眠、自伤念头或功能受损，请尽快联系精神科/心理科医生或拨打心理援助热线。
+    </p>
+    <p class="hotline">
+      中国大陆心理援助热线：<b>12356</b>（全国统一心理援助热线）· 北京 <b>010-8295-1332</b>（24 小时）·
+      希望 24 热线 <b>400-161-9995</b> · 紧急情况请拨打 <b>120</b>
+    </p>
+    <p class="meta">
+      <span id="footer-stats">—</span> ·
+      数据均为本地静态文件，无后端、无追踪、无账号。作者：<b>FZYZ LSY</b>。
+      <a href="#/about">测量学说明、作者与版权声明</a>
+    </p>
+  </div>
+</footer>
+
+<!-- 数据注册中心 + 引擎（引擎先于数据加载：数据里会引用 A.CRISIS 等常量） -->
+<script src="assets/js/data/registry.js"></script>
+<script src="assets/js/engine.js"></script>
+<!-- 数据层（按类别拆分，便于维护） -->
+<script src="assets/js/data/personality.js"></script>
+<script src="assets/js/data/clinical.js"></script>
+<script src="assets/js/data/mind.js"></script>
+<script src="assets/js/data/relate.js"></script>
+<script src="assets/js/data/self.js"></script>
+<script src="assets/js/data/fun.js"></script>
+<!-- 应用 -->
+<script src="assets/js/app.js"></script>
+</body>
+</html>
